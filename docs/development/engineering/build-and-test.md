@@ -169,3 +169,13 @@ Hardware-affecting changes must also run the applicable on-device checklist in t
 Never upload the app-only `build/FoloToy-AI-Passport.bin` to the community. Only
 the validated `build/FoloToy-AI-Passport-full.bin` contains the complete checked
 firmware layout.
+
+## Reuse a build directory
+
+The application firmware gate configures first and builds with two parallel jobs.
+Use `PASSPORT_BUILD_DIR=build ./tools/validate.sh` to reuse the current build
+directory. It generates `build/sdkconfig` from tracked defaults, retains the
+directory and cache, and performs the same firmware verification and archive.
+Without this variable, the original temporary isolated configuration remains the
+default. The static gate also runs the Agent Link application glyph, screen
+preview and playback-buffer tests.

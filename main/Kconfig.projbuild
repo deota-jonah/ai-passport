@@ -1,0 +1,14 @@
+menu "Deotaland Agent Link application"
+config AGENT_LINK_TRANSPORT_WIFI
+    bool
+    default y
+
+config PASSPORT_PLATFORM_URL
+    string "Deotaland platform URL"
+    default "https://bot.deotaland.cn"
+
+config PASSPORT_PRODUCT_ID
+    int "Registered AI Passport product ID"
+    default 1
+    range 1 2147483647
+endmenu

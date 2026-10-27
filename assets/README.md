@@ -59,3 +59,12 @@ Decoded 80-byte SHA-256:
 `fa7365671093ef449c5bdcfb4adb279e3d275f888109f50b6b2f21e9b96220d5`.
 This is a fuel-gauge profile, not a charging configuration or a generic profile
 for every 500 mAh cell; see the [hardware guide](../docs/hardware-design/AI_HARDWARE_DEVELOPMENT_GUIDE.md#9-cw2017-fuel-gauge).
+
+## Agent Link raster fonts
+
+`fonts/agent_link/` contains Montserrat 14/20/28 (LVGL MIT notices retained) and
+a 14 px CJK raster font (SIL OFL, `fonts/agent_link/OFL.txt`), imported from
+Agent_link commit `9f664fc028a664a47789506802aecfb0b69b7e18`. The generated
+four-bit glyph data stays in Flash and is compiled once by the application; no
+runtime TTF cache is allocated. Source, generator, supported character set and
+verification are recorded in the [integration guide](../docs/development/deotaland-agent-link.md).

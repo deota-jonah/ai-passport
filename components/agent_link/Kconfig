@@ -1,0 +1,124 @@
+menu "agent_link SDK"
+
+config AGENT_LINK_OTA_ENABLE
+    bool "Enable OTA firmware upgrade over the App link"
+    default y
+    help
+        Handle 0x37 StartOtaUpgrade / 0x56 AbortOtaUpgrade and stream the new firmware
+        in over the L2CAP data channel, then verify SHA-256 and reboot into it.
+        the official App upgrades agent_link devices with the code path it already ships.
+        Requires an OTA-capable partition table (ota_0/ota_1 + otadata).
+
+if AGENT_LINK_OTA_ENABLE
+
+config AGENT_LINK_OTA_REQUIRE_NEWER_VERSION
+    bool "Reject firmware that is not strictly newer"
+    default n
+    help
+        y = rule: the version in 0x37 must be strictly greater
+        than the running one (major.minor.patch), otherwise the device answers 2030
+        OtaVersionIncompat. Same version or a downgrade is refused.
+
+        n (default) = accept any version. This is what lets a bench device be flashed
+        back and forth between agent_link firmware (2.x) and the production 1.7.x image
+        without a serial cable. The App still decides what it offers.
+
+config AGENT_LINK_OTA_REQUIRE_MODEL_MATCH
+    bool "Reject firmware built for a different device model"
+    default y
+    help
+        The App may append a model string to 0x37. When it does and this is enabled, it
+        must equal this device's model (agent_link_config_t.model) or the device answers
+        2037 OtaModelMismatch — this is what stops a build for other hardware from being
+        flashed onto this one. An App that sends no model is always allowed through
+        (older App versions)
+
+config AGENT_LINK_OTA_RX_BUFFER_KB
+    int "OTA receive buffer (KB)"
+    range 16 128
+    default 32
+    help
+        Ring buffer between the link RX callback and the flash-writing worker. Allocated
+        in PSRAM when available, otherwise internal RAM. The link is back-pressured (the
+        peer stops getting credit) whenever less than a quarter of it is free, so a
+        smaller buffer costs throughput, never correctness.
+
+endif # AGENT_LINK_OTA_ENABLE
+
+config AGENT_LINK_MQTT_ENABLE
+    bool "Enable the platform MQTT connection"
+    depends on AGENT_LINK_TRANSPORT_WIFI
+    default y
+    help
+        Receive platform push commands over MQTT. HTTP activation, heartbeat,
+        Agent configuration polling and HTTP-granted realtime WSS voice remain
+        available when disabled. Disable on constrained voice-only boards to
+        release the MQTT task, TLS connection and credential buffer.
+
+config AGENT_LINK_MQTT_TOKEN_RENEW_S
+    int "WiFi: renew the MQTT token this many seconds after issue (0 = before it expires)"
+    range 0 86400
+    default 0
+    help
+        0 (the default, and the value to ship): an MQTT token is renewed a tenth of its lifetime
+        before it expires, about six days into the platform's 7-day tokens, and at once whenever
+        the broker refuses it.
+
+        A small value such as 120 has the device renew that long after each token is issued and
+        reconnect MQTT with the new one, so the renewal can be watched on the bench.
+
+endmenu
+
+menu "Agent Link realtime voice"
+
+config AGENT_LINK_KORVO_CLOUD_CJK
+    bool
+    default y if BOARD_TYPE_ESP32S3_KORVO_CLOUD
+    select LV_FONT_SIMSUN_14_CJK
+
+config AGENT_LINK_PLATFORM_USER_TOKEN
+    string
+    depends on AGENT_LINK_TRANSPORT_WIFI
+    default ""
+    help
+        Legacy configuration compatibility only; platform requests do not read it.
+        Device APIs use the auth_key saved after activation.
+
+config AGENT_LINK_REALTIME_DIRECT
+    bool "Request voice grants directly from Agent Stack"
+    depends on AGENT_LINK_TRANSPORT_WIFI
+    default n
+    help
+        Use a locally configured User API Key and session for device-side testing.
+        Otherwise request short-lived grants from the application backend over MQTT.
+
+config AGENT_LINK_REALTIME_BASE_URL
+    string "Agent Stack API base URL"
+    depends on AGENT_LINK_REALTIME_DIRECT
+    default ""
+
+config AGENT_LINK_REALTIME_OPUS
+    bool "Use Opus for realtime voice"
+    depends on AGENT_LINK_TRANSPORT_WIFI
+    depends on !IDF_TARGET_ESP32S31
+    select FREERTOS_TASK_CREATE_ALLOW_EXT_MEM if SPIRAM
+    default y
+    help
+        Platform sessions request Opus in both directions, in 20 ms packets.
+        The board still supplies and receives PCM16 at 16 kHz. Direct test
+        sessions retain PCM16 input and request Opus replies.
+
+config AGENT_LINK_REALTIME_SESSION_ID
+    string "Agent Stack session ID"
+    depends on AGENT_LINK_REALTIME_DIRECT
+    default ""
+
+config AGENT_LINK_REALTIME_USER_API_KEY
+    string "Agent Stack User API Key"
+    depends on AGENT_LINK_REALTIME_DIRECT
+    default ""
+    help
+        Keep this key in your private sdkconfig. Never put it in defaults or source.
+        Firmware built with this key must remain private.
+
+endmenu

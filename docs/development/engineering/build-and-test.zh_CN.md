@@ -144,3 +144,11 @@ cc -std=c11 -Wall -Wextra -Werror -Imain \
 
 社区只能上传验证通过的 `build/FoloToy-AI-Passport-full.bin`，不得上传应用单镜像
 `build/FoloToy-AI-Passport.bin`，后者不包含完整且经校验的固件布局。
+
+## 复用构建目录
+
+本应用的固件验证配置后使用两个并行任务编译。需要复用当前构建目录时，
+可运行 `PASSPORT_BUILD_DIR=build ./tools/validate.sh`。它从已跟踪的默认配置
+生成 `build/sdkconfig`，保留构建目录及缓存，并执行同样的固件验证和归档。
+未设置该变量时继续使用原有临时隔离配置。静态流程还会运行 Agent Link
+应用的中文字形、屏幕预览和播放缓冲测试。

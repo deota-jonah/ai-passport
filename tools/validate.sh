@@ -75,6 +75,7 @@ run_static_checks() {
     PYTHONDONTWRITEBYTECODE=1 python3 tests/test_verify_firmware.py
     PYTHONDONTWRITEBYTECODE=1 python3 tests/test_archive_firmware.py
     PYTHONDONTWRITEBYTECODE=1 python3 tests/test_install_passport_skills.py
+    PYTHONDONTWRITEBYTECODE=1 python3 tools/test_agent_link.py
     rm -rf "${test_dir}"
     echo "Host tests: PASS"
 }
@@ -87,21 +88,29 @@ run_firmware_checks() (
         return 1
     fi
 
-    validation_build_dir="$(mktemp -d /tmp/ai-passport-firmware.XXXXXX)"
-    trap 'case "${validation_build_dir}" in /tmp/ai-passport-firmware.*) rm -rf -- "${validation_build_dir}" ;; esac' EXIT
+    if [[ -n "${PASSPORT_BUILD_DIR:-}" ]]; then
+        mkdir -p -- "${PASSPORT_BUILD_DIR}"
+        validation_build_dir="$(cd -- "${PASSPORT_BUILD_DIR}" && pwd)"
+    else
+        validation_build_dir="$(mktemp -d /tmp/ai-passport-firmware.XXXXXX)"
+        trap 'case "${validation_build_dir}" in /tmp/ai-passport-firmware.*) rm -rf -- "${validation_build_dir}" ;; esac' EXIT
+    fi
 
     SDKCONFIG_DEFAULTS="${repo_root}/sdkconfig.defaults" \
         idf.py -B "${validation_build_dir}" \
-        -D "SDKCONFIG=${validation_build_dir}/sdkconfig" build
+        -D "SDKCONFIG=${validation_build_dir}/sdkconfig" reconfigure
+    cmake --build "${validation_build_dir}" --parallel 2
     idf.py -B "${validation_build_dir}" merge-bin \
         -o "${validation_build_dir}/FoloToy-AI-Passport-full.bin"
     python3 tools/verify_firmware.py "${validation_build_dir}"
     PYTHONDONTWRITEBYTECODE=1 python3 tools/archive_firmware.py create \
         "${validation_build_dir}" --archive-root "${repo_root}/build/firmware"
     mkdir -p "${repo_root}/build"
-    install -m 0644 \
-        "${validation_build_dir}/FoloToy-AI-Passport-full.bin" \
-        "${repo_root}/build/FoloToy-AI-Passport-full.bin"
+    if [[ "${validation_build_dir}" != "${repo_root}/build" ]]; then
+        install -m 0644 \
+            "${validation_build_dir}/FoloToy-AI-Passport-full.bin" \
+            "${repo_root}/build/FoloToy-AI-Passport-full.bin"
+    fi
     echo "Firmware build: PASS"
 )
 

@@ -55,3 +55,11 @@ BSP 在 `components/bsp/src/bsp_battery.c` 中嵌入这 80 字节，主机检查
 `fa7365671093ef449c5bdcfb4adb279e3d275f888109f50b6b2f21e9b96220d5`。
 这是电量计参数，不是充电配置，也不能通用于所有 500 mAh 电芯；详见
 [硬件指南](../docs/hardware-design/AI_HARDWARE_DEVELOPMENT_GUIDE.zh_CN.md#9-cw2017-电池计)。
+
+## Agent Link 条带字体
+
+`fonts/agent_link/` 保存 Montserrat 14/20/28（保留 LVGL MIT 声明）及
+14 px CJK 条带字体（SIL OFL，`fonts/agent_link/OFL.txt`），来源为
+Agent_link 提交 `9f664fc028a664a47789506802aecfb0b69b7e18`。四位灰度字形
+常驻 Flash，由应用单独编译一次，不分配运行时 TTF 缓存。来源、生成工具、
+支持字符范围及验证方式见[接入说明](../docs/development/deotaland-agent-link.zh_CN.md)。
